@@ -12,8 +12,13 @@ import (
 )
 
 var (
-	logFile string
-	l       *slog.Logger
+	logFile   string
+	l         *slog.Logger
+	threshold float64
+	retries   int
+
+	silent  bool
+	verbose bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -30,7 +35,7 @@ var rootCmd = &cobra.Command{
 	monitoring needs, from simple uptime checks to detailed performance
 	analysis.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		l = logger.New(logFile)
+		l = logger.New(logFile, silent, verbose)
 	},
 }
 
@@ -55,4 +60,9 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&logFile, "logfile", "healthcheck.log", "File to log output to")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().Float64Var(&threshold, "threshold", 0.5, "Threshold value for considering a response to be too slow (in seconds)")
+	rootCmd.PersistentFlags().IntVar(&retries, "retries", 3, "Number of retries for a failed request")
+	rootCmd.PersistentFlags().BoolVar(&silent, "silent", false, "Run in silent mode without stdout output")
+	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Run in verbose mode. Override silent mode")
+
 }

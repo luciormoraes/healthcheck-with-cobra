@@ -11,6 +11,10 @@ type MultiWriterHandler struct {
 	fileHandler   slog.Handler
 }
 
+func (h *MultiWriterHandler) GetFileHandler() slog.Handler {
+	return h.fileHandler
+}
+
 func (h *MultiWriterHandler) Enabled(ctx context.Context, level slog.Level) bool {
 	return true
 }
@@ -52,7 +56,7 @@ func NewMultiWriterHandler(logFile string) *MultiWriterHandler {
 	}
 }
 
-func New(logFile string) *slog.Logger {
+func New(logFile string, silent, verbose bool) *slog.Logger {
 	handler := NewMultiWriterHandler(logFile)
 	if handler == nil {
 		handler = &MultiWriterHandler{
@@ -60,5 +64,16 @@ func New(logFile string) *slog.Logger {
 			fileHandler:   slog.Default().Handler(),
 		}
 	}
+
+	if verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	} else {
+		slog.SetLogLoggerLevel(slog.LevelInfo)
+	}
+
+	if silent {
+		return slog.New(handler.GetFileHandler())
+	}
+
 	return slog.New(handler)
 }

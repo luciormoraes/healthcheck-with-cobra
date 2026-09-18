@@ -1,0 +1,39 @@
+# Binaries for programs and plugins
+healthcheck.log
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts and code coverage profiles
+*.out
+*.test
+*.prof
+*.coverprofile
+coverage.txt
+profile.cov
+
+# Dependency directories
+# (Uncomment if you do not want to commit your vendored dependencies)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Local environment variables
+.env
+.env.*
+!.env.example
+
+# Common IDEs and OS files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+exercise
