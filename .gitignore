@@ -1,4 +1,5 @@
 # Binaries for programs and plugins
+healthcheck/healthcheck
 healthcheck.log
 *.exe
 *.exe~

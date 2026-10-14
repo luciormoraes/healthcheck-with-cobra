@@ -1,5 +1,5 @@
 /*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
+Copyright © 2026 Lucio
 */
 package cmd
 
@@ -17,7 +17,8 @@ var (
 var monitorCmd = &cobra.Command{
 	Use:   "monitor [urls]",
 	Short: "Monitor the health of specified URL(s) over time",
-	Long: `Continuously monitors the health of the specified URL(s)
+	Long: `
+	Continuously monitors the health of the specified URL(s)
 	at the specified interval`,
 	Run: func(cmd *cobra.Command, args []string) {
 		monitorURLs(args)

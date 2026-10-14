@@ -1,10 +1,12 @@
 /*
-Copyright © 2026 NAME HERE <EMAIL ADDRESS>
+Copyright © 2026 Lucio
 */
 package cmd
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -14,13 +16,21 @@ import (
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check the health of specified URL(s)",
-	Long: `Performs a health check by sending a request to the specified URL(s)
+	Long: `
+	Performs a health check by sending a request to the specified URL(s)
 	and report the status`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("check called")
 		for _, url := range args {
 			checkURL(url, threshold, retries)
 		}
+	},
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		for _, url := range args {
+			if !isValidURL(url) {
+				return fmt.Errorf("invalid url: %s", url)
+			}
+		}
+		return nil
 	},
 }
 
@@ -43,7 +53,6 @@ func checkURL(url string, threshold float64, retries int) {
 		}
 
 		if attempt < retries {
-			// fmt.Fprintf(os.Stderr, "Attempt %d failed, retrying...\n", attempt+1)
 			l.Warn("faile retrying", "url", url, "attempts", attempt+1)
 			time.Sleep(time.Second * 2) // Backoff strategy
 		}
@@ -51,7 +60,6 @@ func checkURL(url string, threshold float64, retries int) {
 	}
 
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "Error fetching %s after %d retries: %v\n", url, retries, err)
 		l.Error("fetching error", "url", url, "retries", retries, "err", err)
 		return
 	}
@@ -60,8 +68,14 @@ func checkURL(url string, threshold float64, retries int) {
 
 	if duration.Seconds() > threshold && verbose {
 		l.Error("exceeded threshold", "url", url, "duration", duration, "threshold", threshold)
-		// fmt.Fprintf(os.Stderr, "Warning: %s response time (%v) exceeded threshold of %fs\n", url, duration, threshold)
 	}
 	l.Info("successful check", "url", url, "status code", resp.StatusCode, "duration", duration)
-	// logger.Printf("Checked %s, Status: %d, Response Time: %v", url, resp.StatusCode, duration)
+}
+
+func isValidURL(u string) bool {
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		return false
+	}
+	return parsedURL.Scheme != "" && parsedURL.Host != ""
 }
