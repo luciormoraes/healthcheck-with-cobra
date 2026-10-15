@@ -4,6 +4,7 @@ Copyright © 2026 Lucio
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -21,7 +22,8 @@ var monitorCmd = &cobra.Command{
 	Continuously monitors the health of the specified URL(s)
 	at the specified interval`,
 	Run: func(cmd *cobra.Command, args []string) {
-		monitorURLs(args)
+		ctx := cmd.Context()
+		monitorURLs(ctx, args)
 	},
 }
 
@@ -30,13 +32,13 @@ func init() {
 	rootCmd.AddCommand(monitorCmd)
 }
 
-func monitorURLs(urls []string) {
+func monitorURLs(ctx context.Context, urls []string) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	for range ticker.C {
 		for _, url := range urls {
-			checkURL(url, threshold, retries)
+			checkURL(ctx, url, threshold, retries)
 		}
 	}
 }
