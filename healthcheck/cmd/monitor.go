@@ -5,8 +5,13 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/exec"
 	"time"
 
+	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
@@ -37,8 +42,32 @@ func monitorURLs(ctx context.Context, urls []string) {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		for _, url := range urls {
-			checkURL(ctx, url, threshold, retries)
+		if output == "table" {
+			// print table
+			table := tablewriter.NewWriter(outputWriter)
+			upColor := color.New(color.FgGreen).SprintFunc()
+			downColor := color.New(color.FgRed).SprintFunc()
+			table.Header([]string{"URL", "Status"})
+			for _, url := range urls {
+				status := downColor("Down")
+				if checkURL(ctx, url, threshold, retries) {
+					status = upColor("Up")
+				}
+				table.Append([]string{url, status})
+			}
+			// clear the screen
+			cmd := exec.Command("clear")
+			cmd.Stdout = os.Stdout
+			err := cmd.Run()
+			if err != nil {
+				fmt.Println("Unable to clean the screen", err)
+			}
+			table.Render()
+		} else {
+			for _, url := range urls {
+				checkURL(ctx, url, threshold, retries)
+			}
 		}
+
 	}
 }
