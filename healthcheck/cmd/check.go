@@ -65,16 +65,16 @@ func checkURL(ctx context.Context, url string, threshold float64, retries int) {
 		if err == nil {
 			// defer resp.Body.Close()
 			if duration.Seconds() > threshold {
-				l.WarnContext(ctx, "exceeded threshold", "url", url, "response time", duration)
+				l.WarnContext(ctx, "exceeded threshold", "url", url, "responseTime", duration)
 			} else {
-				l.InfoContext(ctx, "successful check", "url", url, "status code", resp.StatusCode, "duration", duration)
+				l.InfoContext(ctx, "successful check", "url", url, "statusCode", resp.StatusCode, "duration", duration)
 			}
 			break
 		}
 
 		select {
 		case <-ctx.Done():
-			l.ErrorContext(ctx, "check cancelled", "url", url, "attempt", attempt, "last error", err)
+			l.ErrorContext(ctx, "check cancelled", "url", url, "attempt", attempt, "err", err)
 			os.Exit(1)
 		case <-time.After(2 * time.Second):
 			l.InfoContext(ctx, "backing off", "url", url)

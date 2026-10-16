@@ -51,8 +51,8 @@ func NewMultiWriterHandler(logFile string) *MultiWriterHandler {
 		return nil
 	}
 	return &MultiWriterHandler{
-		stdoutHandler: slog.NewTextHandler(os.Stdout, nil),
-		fileHandler:   slog.NewTextHandler(file, nil),
+		stdoutHandler: slog.NewJSONHandler(os.Stdout, nil),
+		fileHandler:   slog.NewJSONHandler(file, nil),
 	}
 }
 
@@ -60,7 +60,7 @@ func New(logFile string, silent, verbose bool) *slog.Logger {
 	handler := NewMultiWriterHandler(logFile)
 	if handler == nil {
 		handler = &MultiWriterHandler{
-			stdoutHandler: slog.NewTextHandler(os.Stdout, nil),
+			stdoutHandler: slog.NewJSONHandler(os.Stdout, nil),
 			fileHandler:   slog.Default().Handler(),
 		}
 	}
