@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
@@ -41,19 +42,28 @@ func monitorURLs(ctx context.Context, urls []string) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	if output != "table" {
+		s.Start()
+	}
+
 	for range ticker.C {
 		if output == "table" {
 			// print table
 			table := tablewriter.NewWriter(outputWriter)
+			table.Header([]string{"URL", "Status", "Last Time Checked"})
+
 			upColor := color.New(color.FgGreen).SprintFunc()
 			downColor := color.New(color.FgRed).SprintFunc()
-			table.Header([]string{"URL", "Status"})
+
 			for _, url := range urls {
 				status := downColor("Down")
 				if checkURL(ctx, url, threshold, retries) {
 					status = upColor("Up")
 				}
-				table.Append([]string{url, status})
+				currentTime := time.Now()
+				formattedtime := currentTime.Format("01/02/2006 03:04PM")
+				table.Append([]string{url, status, formattedtime})
 			}
 			// clear the screen
 			cmd := exec.Command("clear")
@@ -62,6 +72,7 @@ func monitorURLs(ctx context.Context, urls []string) {
 			if err != nil {
 				fmt.Println("Unable to clean the screen", err)
 			}
+			s.Disable()
 			table.Render()
 		} else {
 			for _, url := range urls {
