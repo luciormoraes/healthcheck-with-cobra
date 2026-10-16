@@ -27,6 +27,7 @@ var monitorCmd = &cobra.Command{
 	Long: `
 	Continuously monitors the health of the specified URL(s)
 	at the specified interval`,
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
 		monitorURLs(ctx, args)
