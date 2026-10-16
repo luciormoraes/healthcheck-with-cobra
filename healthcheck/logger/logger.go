@@ -44,25 +44,41 @@ func (h *MultiWriterHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-func NewMultiWriterHandler(logFile string) *MultiWriterHandler {
+func NewMultiWriterHandler(logFile, output string) *MultiWriterHandler {
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		slog.Error("Failed to open file", "error", err, "path", logFile)
 		return nil
 	}
-	return &MultiWriterHandler{
-		stdoutHandler: slog.NewJSONHandler(os.Stdout, nil),
-		fileHandler:   slog.NewJSONHandler(file, nil),
+	if output == "json" {
+		return &MultiWriterHandler{
+			stdoutHandler: slog.NewJSONHandler(os.Stdout, nil),
+			fileHandler:   slog.NewJSONHandler(file, nil),
+		}
+	} else {
+		return &MultiWriterHandler{
+			stdoutHandler: slog.NewTextHandler(os.Stdout, nil),
+			fileHandler:   slog.NewTextHandler(file, nil),
+		}
 	}
+
 }
 
-func New(logFile string, silent, verbose bool) *slog.Logger {
-	handler := NewMultiWriterHandler(logFile)
+func New(logFile string, silent, verbose bool, output string) *slog.Logger {
+	handler := NewMultiWriterHandler(logFile, output)
 	if handler == nil {
-		handler = &MultiWriterHandler{
-			stdoutHandler: slog.NewJSONHandler(os.Stdout, nil),
-			fileHandler:   slog.Default().Handler(),
+		if output == "json" {
+			handler = &MultiWriterHandler{
+				stdoutHandler: slog.NewJSONHandler(os.Stdout, nil),
+				fileHandler:   slog.Default().Handler(),
+			}
+		} else {
+			handler = &MultiWriterHandler{
+				stdoutHandler: slog.NewTextHandler(os.Stdout, nil),
+				fileHandler:   slog.Default().Handler(),
+			}
 		}
+
 	}
 
 	if verbose {

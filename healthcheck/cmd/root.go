@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/luciormoraes/healthcheck-with-cobra/healthcheck/logger"
 	"github.com/spf13/cobra"
@@ -24,6 +25,8 @@ var (
 	silent      bool
 	verbose     bool
 	versionFlag bool
+
+	output string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -48,7 +51,14 @@ var rootCmd = &cobra.Command{
 		}
 	},
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		l = logger.New(logFile, silent, verbose)
+		time.Local = time.UTC
+		actualSilent := silent
+		actualVerbose := verbose
+		if output == "table" {
+			actualSilent = true
+			actualVerbose = false
+		}
+		l = logger.New(logFile, actualSilent, actualVerbose, output)
 	},
 }
 
@@ -71,4 +81,5 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&silent, "silent", false, "Run in silent mode without stdout output")
 	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Run in verbose mode. Override silent mode")
 	rootCmd.Flags().BoolVar(&versionFlag, "version", false, "Print version")
+	rootCmd.PersistentFlags().StringVarP(&output, "output", "o", "", "Output format (json/text/table)")
 }

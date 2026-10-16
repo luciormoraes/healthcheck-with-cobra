@@ -6,15 +6,26 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
 
+	"github.com/briandowns/spinner"
+	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 )
 
-// checkCmd represents the check command
+var ExitFunction = os.Exit
+var outputWriter io.Writer = os.Stdout
+
+type URLValidationError struct {
+	URL    string
+	Detail string
+}
+
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check the health of specified URL(s)",
@@ -23,8 +34,24 @@ var checkCmd = &cobra.Command{
 	and report the status`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := cmd.Context()
-		for _, url := range args {
-			checkURL(ctx, url, threshold, retries)
+		if output == "table" {
+			// print table
+			table := tablewriter.NewWriter(outputWriter)
+			upColor := color.New(color.FgGreen).SprintFunc()
+			downColor := color.New(color.FgRed).SprintFunc()
+			table.Header([]string{"URL", "Status"})
+			for _, url := range args {
+				status := downColor("Down")
+				if checkURL(ctx, url, threshold, retries) {
+					status = upColor("Up")
+				}
+				table.Append([]string{url, status})
+			}
+			table.Render()
+		} else {
+			for _, url := range args {
+				checkURL(ctx, url, threshold, retries)
+			}
 		}
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -41,10 +68,15 @@ func init() {
 	rootCmd.AddCommand(checkCmd)
 }
 
-func checkURL(ctx context.Context, url string, threshold float64, retries int) {
+func checkURL(ctx context.Context, url string, threshold float64, retries int) bool {
 	var resp *http.Response
 	var lastError error
 	var duration time.Duration
+
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	if output != "table" || silent {
+		s.Start()
+	}
 
 	for attempt := 0; attempt <= retries; attempt++ {
 		start := time.Now()
@@ -56,6 +88,7 @@ func checkURL(ctx context.Context, url string, threshold float64, retries int) {
 		}
 		client := &http.Client{}
 		resp, err = client.Do(req)
+		s.Disable()
 		if err != nil {
 			l.ErrorContext(ctx, "failed to perform request", "url", url, "err", err)
 		}
@@ -86,10 +119,16 @@ func checkURL(ctx context.Context, url string, threshold float64, retries int) {
 
 	if lastError != nil {
 		l.ErrorContext(ctx, "fetching error", "url", url, "retries", retries, "err", lastError)
-		return
+		return false
 	}
 
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		return true
+	} else {
+		return false
+	}
 }
 
 func isValidURL(u string) bool {
