@@ -20,7 +20,7 @@ var (
 type LogEntry struct {
 	Time       time.Time `json:"time"`
 	URL        string    `json:"url"`
-	StatusCode int       `json:"statusCode`
+	StatusCode int       `json:"statusCode"`
 	Duration   int64     `json:"duration"`
 }
 
@@ -67,12 +67,16 @@ func displayHistory(urls []string) {
 		line := scanner.Text()
 		var entry LogEntry
 		if err = json.Unmarshal([]byte(line), &entry); err != nil {
-			fmt.Printf("Error unmarshalling log line: %v\n", err)
+			fmt.Printf("Error unmarshaling log line: %v\n", err)
 			continue
 		}
 		if urlMap[entry.URL] && entry.Time.After(startDateParsed) {
 			fmt.Println(line)
 		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("Error reading log file: %v\n", err)
 	}
 }
 
