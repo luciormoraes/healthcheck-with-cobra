@@ -32,6 +32,15 @@ var monitorCmd = &cobra.Command{
 		ctx := cmd.Context()
 		monitorURLs(ctx, args)
 	},
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		for _, url := range args {
+			err := isValidURL(url)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	},
 }
 
 func init() {

@@ -4,11 +4,14 @@ import (
 	"context"
 	"log/slog"
 	"os"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type MultiWriterHandler struct {
 	stdoutHandler slog.Handler
 	fileHandler   slog.Handler
+	level         slog.Level
 }
 
 func (h *MultiWriterHandler) GetFileHandler() slog.Handler {
@@ -16,7 +19,7 @@ func (h *MultiWriterHandler) GetFileHandler() slog.Handler {
 }
 
 func (h *MultiWriterHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return true
+	return level >= h.level
 }
 
 func (h *MultiWriterHandler) Handle(ctx context.Context, rec slog.Record) error {
@@ -45,20 +48,24 @@ func (h *MultiWriterHandler) WithGroup(name string) slog.Handler {
 }
 
 func NewMultiWriterHandler(logFile, output string) *MultiWriterHandler {
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		slog.Error("Failed to open file", "error", err, "path", logFile)
-		return nil
+	// Configure lumberjack logger
+	log := &lumberjack.Logger{
+		Filename:   logFile,
+		MaxSize:    10,   // megabytes
+		MaxBackups: 3,    // number of backup files
+		MaxAge:     28,   // days
+		Compress:   true, // compress old files
 	}
+
 	if output == "json" {
 		return &MultiWriterHandler{
 			stdoutHandler: slog.NewJSONHandler(os.Stdout, nil),
-			fileHandler:   slog.NewJSONHandler(file, nil),
+			fileHandler:   slog.NewJSONHandler(log, nil),
 		}
 	} else {
 		return &MultiWriterHandler{
 			stdoutHandler: slog.NewTextHandler(os.Stdout, nil),
-			fileHandler:   slog.NewTextHandler(file, nil),
+			fileHandler:   slog.NewTextHandler(log, nil),
 		}
 	}
 
@@ -82,9 +89,9 @@ func New(logFile string, silent, verbose bool, output string) *slog.Logger {
 	}
 
 	if verbose {
-		slog.SetLogLoggerLevel(slog.LevelDebug)
+		handler.level = slog.LevelDebug
 	} else {
-		slog.SetLogLoggerLevel(slog.LevelInfo)
+		handler.level = slog.LevelInfo
 	}
 
 	if silent {

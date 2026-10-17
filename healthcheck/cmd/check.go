@@ -4,12 +4,14 @@ Copyright © 2026 Lucio
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -24,6 +26,10 @@ var outputWriter io.Writer = os.Stdout
 type URLValidationError struct {
 	URL    string
 	Detail string
+}
+
+func (e *URLValidationError) Error() string {
+	return fmt.Sprintf("The URL %s is invalid. Details: %s", e.URL, e.Detail)
 }
 
 var checkCmd = &cobra.Command{
@@ -55,9 +61,29 @@ var checkCmd = &cobra.Command{
 		}
 	},
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Println("Enter URLs to check, one per line.  Press Enter twice to finish:")
+			for {
+				fmt.Print("Enter URL:")
+				input, err := reader.ReadString('\n')
+				if err != nil {
+					return fmt.Errorf("Error parsing input string, details: %v", err)
+				}
+				input = strings.TrimSpace(input)
+				if input == "" {
+					break
+				}
+				err = isValidURL(input)
+				if err != nil {
+					return err
+				}
+			}
+		}
 		for _, url := range args {
-			if !isValidURL(url) {
-				return fmt.Errorf("invalid url: %s", url)
+			err := isValidURL(url)
+			if err != nil {
+				return err
 			}
 		}
 		return nil
@@ -85,7 +111,11 @@ func checkURL(ctx context.Context, url string, threshold float64, retries int) b
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			l.ErrorContext(ctx, "failed to create request", "url", url)
+			return false
 		}
+
+		l.DebugContext(ctx, "request details", "method", req.Method, "url", req.URL, "headers", req.Header)
+
 		client := &http.Client{}
 		resp, err = client.Do(req)
 		s.Disable()
@@ -131,10 +161,25 @@ func checkURL(ctx context.Context, url string, threshold float64, retries int) b
 	}
 }
 
-func isValidURL(u string) bool {
+func isValidURL(u string) error {
 	parsedURL, err := url.Parse(u)
 	if err != nil {
-		return false
+		return &URLValidationError{
+			URL:    u,
+			Detail: err.Error(),
+		}
 	}
-	return parsedURL.Scheme != "" && parsedURL.Host != ""
+	if parsedURL.Scheme == "" {
+		return &URLValidationError{
+			URL:    u,
+			Detail: "missing scheme",
+		}
+	}
+	if parsedURL.Host == "" {
+		return &URLValidationError{
+			URL:    u,
+			Detail: "missing host",
+		}
+	}
+	return nil
 }

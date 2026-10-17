@@ -14,56 +14,74 @@ import (
 
 func TestIsValidURL(t *testing.T) {
 	tests := []struct {
-		name     string
-		url      string
-		expected bool
+		name          string
+		url           string
+		expectedError error
 	}{
 		{
 			"Empty URL",
 			"",
-			false,
-		}, {
+			&URLValidationError{
+				URL:    "",
+				Detail: "missing scheme",
+			},
+		},
+		{
 			"Invalid URL",
 			"http//googl",
-			false,
+			&URLValidationError{
+				URL:    "http//googl",
+				Detail: "missing scheme",
+			},
 		},
 		{
 			"Valid http URL",
 			"http://www.google.com",
-			true,
+			nil,
 		},
 		{
 			"Valid https URL",
 			"https://www.google.com",
-			true,
+			nil,
 		},
 		{
 			"URL with no host",
 			"http://",
-			false,
+			&URLValidationError{
+				URL:    "http://",
+				Detail: "missing host",
+			},
 		},
 		{
 			"URL with IP",
 			"http://192.168.0.1",
-			true,
+			nil,
 		},
 		{
 			"URL with port",
 			"http://localhost:8080",
-			true,
+			nil,
 		},
 		{
 			"URL with special characters",
 			"http://example.com/path?name=val#anchor",
-			true,
+			nil,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := isValidURL(tc.url)
-			if actual != tc.expected {
-				t.Errorf("isValidURL(%q)=%v, expected %v", tc.url, actual, tc.expected)
+			actualError := isValidURL(tc.url)
+			if actualError != nil && tc.expectedError != nil {
+				if actualError.Error() != tc.expectedError.Error() {
+					t.Errorf("isValidURL(%q)=%v, expected error %v", tc.url, actualError, tc.expectedError)
+				}
+			}
+			if actualError != nil && tc.expectedError == nil {
+				t.Errorf("isValidURL(%q)=%v, expected no error", tc.url, actualError)
+			}
+			if actualError == nil && tc.expectedError != nil {
+				t.Errorf("isValidURL(%q)=nil, expected error: %v", tc.url, tc.expectedError)
 			}
 		})
 	}
