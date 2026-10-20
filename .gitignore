@@ -38,3 +38,5 @@ go.work.sum
 *.sw?
 .DS_Store
 exercise
+# Added by goreleaser init:
+dist/
